@@ -27,6 +27,12 @@ module Rubyagents
           .padding(0, 2)
       end
 
+      def self.final_answer
+        @final_answer ||= Lipgloss::Style.new
+          .bold(true)
+          .foreground("#2EC4B6")
+      end
+
       def self.error
         @error ||= Lipgloss::Style.new
           .bold(true)
@@ -114,7 +120,7 @@ module Rubyagents
 
       def final_answer(text)
         puts
-        puts Styles.label.render("Result: ") + text.to_s
+        puts Styles.final_answer.render("Final answer: ") + text.to_s
       end
 
       def spinner(message)
