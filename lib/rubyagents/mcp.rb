@@ -111,4 +111,18 @@ module Rubyagents
     tools = response.dig("result", "tools") || []
     tools.map { |t| MCP::MCPToolWrapper.for(t, transport) }
   end
+
+  def self.tool_from_mcp(command:, tool_name:)
+    transport = MCP::StdioTransport.new(command: command)
+    response = transport.send_request(request: { method: "tools/list", params: {} })
+    tools = response.dig("result", "tools") || []
+    tool_def = tools.find { |t| t["name"] == tool_name }
+
+    unless tool_def
+      available = tools.map { |t| t["name"] }.join(", ")
+      raise ArgumentError, "Tool #{tool_name.inspect} not found. Available: #{available}"
+    end
+
+    MCP::MCPToolWrapper.for(tool_def, transport)
+  end
 end

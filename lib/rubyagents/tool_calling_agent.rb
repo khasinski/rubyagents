@@ -39,6 +39,7 @@ module Rubyagents
         arguments = tc.function.arguments
 
         UI.code("#{tool_name}(#{arguments.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")})")
+        notify(:on_tool_call, tool_name: tool_name, arguments: arguments)
 
         if tool_name == "final_answer"
           final_answer_value = arguments[:answer] || arguments["answer"]

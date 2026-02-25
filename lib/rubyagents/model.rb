@@ -14,10 +14,23 @@ module Rubyagents
     def to_s
       "#{total_tokens} tokens (#{input_tokens} in / #{output_tokens} out)"
     end
+
+    def to_h
+      { input_tokens: input_tokens, output_tokens: output_tokens }
+    end
   end
 
-  ToolCallFunction = Data.define(:name, :arguments)
-  ToolCall = Data.define(:id, :function)
+  ToolCallFunction = Data.define(:name, :arguments) do
+    def to_h
+      { name: name, arguments: arguments }
+    end
+  end
+
+  ToolCall = Data.define(:id, :function) do
+    def to_h
+      { id: id, function: function.to_h }
+    end
+  end
 
   ChatMessage = Data.define(:role, :content, :token_usage, :tool_calls) do
     def initialize(role:, content:, token_usage: nil, tool_calls: nil)
@@ -31,6 +44,21 @@ module Rubyagents
     end
 
     def success? = state == "success"
+
+    def to_h
+      {
+        output: output,
+        state: state,
+        steps: steps.map(&:to_h),
+        token_usage: token_usage&.to_h,
+        timing: timing
+      }
+    end
+
+    def to_json(*args)
+      require "json"
+      to_h.to_json(*args)
+    end
   end
 
   class Model

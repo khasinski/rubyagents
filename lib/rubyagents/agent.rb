@@ -2,12 +2,12 @@
 
 module Rubyagents
   class Agent
-    attr_reader :name, :description, :model, :tools, :max_steps, :memory, :planning_interval, :step_callbacks
+    attr_reader :name, :description, :model, :tools, :max_steps, :memory, :planning_interval, :step_callbacks, :callbacks
 
     def initialize(model:, tools: [], agents: [], name: nil, description: nil,
                    max_steps: 10, planning_interval: nil, step_callbacks: [],
-                   final_answer_checks: [], prompt_templates: nil, instructions: nil,
-                   output_type: nil)
+                   callbacks: [], final_answer_checks: [], prompt_templates: nil,
+                   instructions: nil, output_type: nil)
       @name = name
       @description = description
       @model = model.is_a?(String) ? Model.for(model) : model
@@ -15,6 +15,7 @@ module Rubyagents
       @max_steps = max_steps
       @planning_interval = planning_interval
       @step_callbacks = step_callbacks
+      @callbacks = Array(callbacks)
       @final_answer_checks = final_answer_checks
       @prompt_templates = prompt_templates || PromptTemplates.new
       @instructions = instructions
@@ -36,10 +37,12 @@ module Rubyagents
       end
 
       start_time = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+      notify(:on_run_start, task: task)
 
       (1..max_steps).each do |step_number|
         raise InterruptError, "Agent interrupted" if @interrupt_switch
 
+        notify(:on_step_start, step_number: step_number)
         maybe_plan(step_number)
 
         # Call LLM with timing
@@ -60,7 +63,9 @@ module Rubyagents
               next
             end
             total_timing = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
-            return build_result(result, total_timing, return_full_result)
+            built = build_result(result, total_timing, return_full_result)
+            notify(:on_run_end, result: built)
+            return built
           end
         else
           UI.step_metrics(duration: llm_duration, token_usage: response.token_usage)
@@ -77,6 +82,7 @@ module Rubyagents
         total_tokens: memory.total_tokens
       )
       UI.error("Max steps (#{max_steps}) reached without a final answer")
+      notify(:on_error, error: MaxStepsError.new("Max steps (#{max_steps}) reached"))
 
       total_timing = Process.clock_gettime(Process::CLOCK_MONOTONIC) - start_time
       output = memory.last_step&.observation
@@ -87,6 +93,7 @@ module Rubyagents
         token_usage: memory.total_tokens,
         timing: total_timing
       )
+      notify(:on_run_end, result: return_full_result ? result : output)
       return_full_result ? result : output
     end
 
@@ -259,6 +266,13 @@ module Rubyagents
 
     def notify_callbacks(step)
       @step_callbacks.each { |cb| cb.call(step, agent: self) }
+      notify(:on_step_end, step: step)
+    end
+
+    def notify(event, **payload)
+      @callbacks.each do |cb|
+        cb.send(event, **payload, agent: self) if cb.respond_to?(event)
+      end
     end
 
     def format_output(result)

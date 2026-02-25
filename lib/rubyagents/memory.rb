@@ -6,10 +6,31 @@ module Rubyagents
                    duration: 0.0, token_usage: nil)
       super
     end
+
+    def to_h
+      h = { type: "action", step_number: step_number, thought: thought, duration: duration }
+      h[:code] = code if code
+      h[:tool_calls] = tool_calls.map(&:to_h) if tool_calls
+      h[:observation] = observation if observation
+      h[:error] = error if error
+      h[:token_usage] = token_usage.to_h if token_usage
+      h
+    end
   end
 
-  PlanningStep = Data.define(:plan, :duration, :token_usage)
-  UserMessage = Data.define(:content)
+  PlanningStep = Data.define(:plan, :duration, :token_usage) do
+    def to_h
+      h = { type: "planning", plan: plan, duration: duration }
+      h[:token_usage] = token_usage.to_h if token_usage
+      h
+    end
+  end
+
+  UserMessage = Data.define(:content) do
+    def to_h
+      { type: "user_message", content: content }
+    end
+  end
 
   class Memory
     attr_reader :system_prompt, :task, :steps, :total_tokens, :total_duration
@@ -103,7 +124,91 @@ module Rubyagents
       action_steps.filter_map(&:code).join("\n\n")
     end
 
+    def to_h
+      {
+        system_prompt: system_prompt,
+        task: task,
+        steps: steps.map(&:to_h),
+        total_tokens: total_tokens.to_h,
+        total_duration: total_duration
+      }
+    end
+
+    def to_json(*args)
+      require "json"
+      to_h.to_json(*args)
+    end
+
+    def replay(io: $stdout)
+      io.puts UI::Styles.final_answer.render("Task: ") + task.to_s
+      io.puts
+
+      steps.each do |step|
+        case step
+        when ActionStep
+          replay_action_step(step, io)
+        when PlanningStep
+          io.puts UI::Styles.plan_label.render(" Plan ")
+          io.puts UI::Styles.plan_box.render(step.plan)
+          replay_metrics(step, io)
+        when UserMessage
+          io.puts UI::Styles.label.render("User: ") + step.content.to_s
+          io.puts
+        end
+      end
+
+      parts = ["#{action_steps.size} steps", format("%.1fs total", total_duration)]
+      parts << total_tokens.to_s if total_tokens.total_tokens > 0
+      io.puts UI::Styles.dim.render(parts.join(" | "))
+    end
+
     private
+
+    def replay_action_step(step, io)
+      if step.thought
+        io.puts UI::Styles.label.render("Thought: ") + step.thought
+      end
+
+      if step.code
+        io.puts
+        highlighted = rouge_formatter.format(rouge_lexer.lex(step.code))
+        highlighted.each_line { |line| io.puts "  #{line.rstrip}" }
+        io.puts
+      end
+
+      if step.tool_calls
+        step.tool_calls.each do |tc|
+          args = tc.function.arguments.map { |k, v| "#{k}: #{v.inspect}" }.join(", ")
+          io.puts UI::Styles.label.render("Tool: ") + "#{tc.function.name}(#{args})"
+        end
+      end
+
+      if step.observation
+        io.puts UI::Styles.label.render("Result: ") + step.observation.to_s[0, 200]
+      end
+
+      if step.error
+        io.puts UI::Styles.error.render("Error: ") + step.error
+      end
+
+      replay_metrics(step, io)
+    end
+
+    def replay_metrics(step, io)
+      parts = []
+      parts << format("%.1fs", step.duration) if step.duration > 0
+      parts << step.token_usage.to_s if step.token_usage
+      io.puts UI::Styles.dim.render(parts.join(" | ")) unless parts.empty?
+      io.puts
+    end
+
+    def rouge_lexer
+      @rouge_lexer ||= Rouge::Lexers::Ruby.new
+    end
+
+    def rouge_formatter
+      @rouge_formatter ||= Rouge::Formatters::Terminal256.new(Rouge::Themes::Monokai.new)
+    end
 
     def build_assistant_message(step)
       if step.tool_calls

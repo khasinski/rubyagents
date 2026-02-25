@@ -107,4 +107,19 @@ RSpec.describe Rubyagents::MCP do
       expect(add_tool.call(a: 3, b: 5)).to eq("8")
     end
   end
+
+  describe "Rubyagents.tool_from_mcp" do
+    it "loads a single tool by name" do
+      tool = Rubyagents.tool_from_mcp(command: ["ruby", MOCK_SERVER], tool_name: "echo")
+
+      expect(tool.class.tool_name).to eq("echo")
+      expect(tool.call(message: "hello")).to eq("hello")
+    end
+
+    it "raises ArgumentError for unknown tool name" do
+      expect {
+        Rubyagents.tool_from_mcp(command: ["ruby", MOCK_SERVER], tool_name: "nonexistent")
+      }.to raise_error(ArgumentError, /not found.*Available: echo, add/)
+    end
+  end
 end

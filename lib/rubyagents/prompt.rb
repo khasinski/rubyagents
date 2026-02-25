@@ -19,6 +19,12 @@ module Rubyagents
       - Use puts to print intermediate values for debugging
       - Keep code simple and direct
 
+      ## Available Ruby libraries
+      Your code runs in a full Ruby environment. You can `require` and use:
+      - Ruby standard library: net/http, uri, json, csv, fileutils, open-uri, date, time, set, etc.
+      - Any gems installed in the current environment (use the list_gems tool to see them)
+      Use these freely -- e.g. `require "net/http"` to fetch URLs, `require "json"` to parse JSON, etc.
+
       ## CRITICAL: final_answer rules
       - Call final_answer(answer: "...") ONLY when you have the actual, complete answer
       - NEVER call final_answer in the same step where you gather data with tools

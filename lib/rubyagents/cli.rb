@@ -7,7 +7,9 @@ module Rubyagents
     TOOL_MAP = {
       "web_search" => -> { require_relative "tools/web_search"; WebSearch },
       "visit_webpage" => -> { require_relative "tools/visit_webpage"; VisitWebpage },
-      "user_input" => -> { require_relative "tools/user_input"; UserInput }
+      "user_input" => -> { require_relative "tools/user_input"; UserInput },
+      "file_read" => -> { require_relative "tools/file_read"; FileRead },
+      "file_write" => -> { require_relative "tools/file_write"; FileWrite }
     }.freeze
 
     def self.run(argv = ARGV)

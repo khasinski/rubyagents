@@ -14,22 +14,21 @@ These make the framework usable for real work.
 
 ## Phase 6 -- Model & tool ecosystem (high impact, medium effort)
 
-Broader model support and tool discovery.
+Broader model support and tool discovery. The RubyLLM migration (replacing 3 hand-rolled adapters with a single wrapper) completed most of the model items here.
 
-- [ ] **Google Gemini adapter** -- Direct adapter for Gemini API (large user base, good tool calling support).
-- [ ] **LiteLLM-style universal adapter** -- Single adapter that proxies to any OpenAI-compatible endpoint. Covers Azure, Groq, Together, Fireworks, local vLLM, etc. without one-off adapters.
-- [ ] **Rate limiting** -- `requests_per_minute` on model adapters with automatic backoff/retry on 429s.
-- [ ] **More built-in tools** -- Google search (API-based, more reliable than DDG scraping), Wikipedia search, file read/write tools.
-- [ ] **Tool.from_mcp** -- Load a single tool from an MCP server by name (vs loading all tools from a server).
+- [x] **RubyLLM universal adapter** -- Replaced OpenAI, Anthropic, and Ollama adapters with a single RubyLLM wrapper. Supports 800+ models across OpenAI, Anthropic, Gemini, DeepSeek, OpenRouter, Ollama, and any OpenAI-compatible endpoint. Auto-configures from env vars.
+- [x] **Rate limiting (basic)** -- RubyLLM provides built-in `max_retries` and `retry_interval` for 429s. Per-minute quotas are not yet exposed.
+- [x] **More built-in tools** -- File read/write tools. Google search and Wikipedia search remain TODO.
+- [x] **Tool.from_mcp** -- Load a single tool from an MCP server by name (vs loading all tools from a server).
 
 ## Phase 7 -- Observability & debugging (medium impact, medium effort)
 
 Understanding what agents actually do.
 
 - [ ] **Structured logging** -- JSON-structured logs per step with run_id, step_number, thought, action, observation, timing, tokens. Emit to any Ruby logger.
-- [ ] **`memory.replay`** -- Pretty-print a completed run to the terminal (like smolagents' `agent.replay()`).
-- [ ] **Run export** -- Serialize a run (memory + steps + metadata) to JSON for later analysis or replay.
-- [ ] **Callbacks for observability** -- Richer callback interface: `on_step_start`, `on_step_end`, `on_tool_call`, `on_error`. Current `step_callbacks` only fires after completion.
+- [x] **`memory.replay`** -- Pretty-print a completed run to the terminal (like smolagents' `agent.replay()`).
+- [x] **Run export** -- Serialize a run (memory + steps + metadata) to JSON for later analysis or replay.
+- [x] **Callbacks for observability** -- Richer callback interface: `on_step_start`, `on_step_end`, `on_tool_call`, `on_error`. Current `step_callbacks` only fires after completion.
 
 ## Phase 8 -- Sandboxing & security (medium impact, high effort)
 
@@ -54,4 +53,4 @@ These exist in smolagents but don't fit rubyagents' design goals:
 - **Hub sharing** -- No equivalent to HuggingFace Hub in Ruby. Gems are the distribution mechanism.
 - **LangChain/Gradio interop** -- Python-specific ecosystems.
 - **WASM executor** -- Ruby WASM support is too immature.
-- **MLX/vLLM adapters** -- Python-only inference runtimes. Ollama covers local models.
+- **MLX/vLLM adapters** -- Python-only inference runtimes. RubyLLM covers local models via Ollama.

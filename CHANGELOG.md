@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.2.0
+
+Tools, MCP filtering, observability, and code agent improvements.
+
+- **FileRead tool** -- Read file contents with path expansion and 50k char truncation
+- **FileWrite tool** -- Write files with automatic parent directory creation
+- **ListGems tool** -- Lists available Ruby gems; auto-included in CodeAgent
+- **`tool_from_mcp`** -- Load a single tool from an MCP server by name
+- **Run export** -- `to_h` / `to_json` on Memory, RunResult, and all step types for serialization
+- **Richer callbacks** -- `Callback` base class with `on_run_start`, `on_step_start`, `on_step_end`, `on_tool_call`, `on_error`, `on_run_end`; backward-compatible with existing `step_callbacks`
+- **`memory.replay`** -- Pretty-print a completed run with syntax-highlighted code and metrics
+- **Code agent prompt** -- Tells the model about available Ruby stdlib and gems so it uses `net/http`, `json`, etc. without being asked
+
 ## 0.1.0
 
 Initial release.
