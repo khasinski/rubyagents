@@ -1,51 +1,70 @@
 # frozen_string_literal: true
 
-require "lipgloss"
+JRUBY = RUBY_ENGINE == "jruby"
+
+require "lipgloss" unless JRUBY
 require "rouge"
 
 module Rubyagents
   module UI
     SPINNER_FRAMES = %w[⠋ ⠙ ⠹ ⠸ ⠼ ⠴ ⠦ ⠧ ⠇ ⠏].freeze
 
+    # Passthrough style used on JRuby where lipgloss is unavailable
+    class NullStyle
+      def render(text)
+        text
+      end
+    end
+
     module Styles
-      def self.label
-        @label ||= Lipgloss::Style.new.faint(true)
-      end
+      if JRUBY
+        def self.label;         NullStyle.new; end
+        def self.plan_label;    NullStyle.new; end
+        def self.plan_box;      NullStyle.new; end
+        def self.final_answer;  NullStyle.new; end
+        def self.error;         NullStyle.new; end
+        def self.dim;           NullStyle.new; end
+        def self.spinner_style; NullStyle.new; end
+      else
+        def self.label
+          @label ||= Lipgloss::Style.new.faint(true)
+        end
 
-      def self.plan_label
-        @plan_label ||= Lipgloss::Style.new
-          .bold(true)
-          .foreground("#011627")
-          .background("#FF9F1C")
-          .padding(0, 1)
-      end
+        def self.plan_label
+          @plan_label ||= Lipgloss::Style.new
+            .bold(true)
+            .foreground("#011627")
+            .background("#FF9F1C")
+            .padding(0, 1)
+        end
 
-      def self.plan_box
-        @plan_box ||= Lipgloss::Style.new
-          .border(:rounded)
-          .border_foreground("#FF9F1C")
-          .padding(0, 2)
-      end
+        def self.plan_box
+          @plan_box ||= Lipgloss::Style.new
+            .border(:rounded)
+            .border_foreground("#FF9F1C")
+            .padding(0, 2)
+        end
 
-      def self.final_answer
-        @final_answer ||= Lipgloss::Style.new
-          .bold(true)
-          .foreground("#2EC4B6")
-      end
+        def self.final_answer
+          @final_answer ||= Lipgloss::Style.new
+            .bold(true)
+            .foreground("#2EC4B6")
+        end
 
-      def self.error
-        @error ||= Lipgloss::Style.new
-          .bold(true)
-          .foreground("#FF0000")
-      end
+        def self.error
+          @error ||= Lipgloss::Style.new
+            .bold(true)
+            .foreground("#FF0000")
+        end
 
-      def self.dim
-        @dim ||= Lipgloss::Style.new.faint(true)
-      end
+        def self.dim
+          @dim ||= Lipgloss::Style.new.faint(true)
+        end
 
-      def self.spinner_style
-        @spinner_style ||= Lipgloss::Style.new
-          .foreground("#7B61FF")
+        def self.spinner_style
+          @spinner_style ||= Lipgloss::Style.new
+            .foreground("#7B61FF")
+        end
       end
     end
 
@@ -128,14 +147,19 @@ module Rubyagents
       end
 
       def welcome
-        title = Lipgloss::Style.new
-          .bold(true)
-          .foreground("#7B61FF")
-          .render("rubyagents")
+        if JRUBY
+          puts "rubyagents v#{VERSION}"
+          puts "Code-first AI agents for Ruby"
+        else
+          title = Lipgloss::Style.new
+            .bold(true)
+            .foreground("#7B61FF")
+            .render("rubyagents")
 
-        version = Styles.dim.render("v#{VERSION}")
-        puts "#{title} #{version}"
-        puts Styles.dim.render("Code-first AI agents for Ruby")
+          version = Styles.dim.render("v#{VERSION}")
+          puts "#{title} #{version}"
+          puts Styles.dim.render("Code-first AI agents for Ruby")
+        end
         puts
       end
 

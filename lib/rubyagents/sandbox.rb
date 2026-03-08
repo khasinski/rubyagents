@@ -6,6 +6,85 @@ module Rubyagents
   class Sandbox
     DEFAULT_TIMEOUT = 30 # seconds
 
+    # ---------------------------------------------------------------------------
+    # Executor strategy — selected once at load time based on the Ruby engine.
+    # Adding a new backend (e.g. TruffleRuby) is a new subclass + one constant.
+    # ---------------------------------------------------------------------------
+    class Executor
+      def self.for_platform
+        RUBY_ENGINE == "jruby" ? ThreadExecutor : ForkExecutor
+      end
+
+      def call(_timeout, &_block)
+        raise NotImplementedError, "#{self.class}#call not implemented"
+      end
+    end
+
+    # MRI / TruffleRuby: fork gives full process isolation and safe kill.
+    class ForkExecutor < Executor
+      def call(timeout, &block)
+        reader, writer = IO.pipe
+
+        pid = Process.fork do
+          reader.close
+          Marshal.dump(block.call, writer)
+        rescue => e
+          Marshal.dump({ error: "#{e.class}: #{e.message}" }, writer)
+        ensure
+          writer.close
+          exit!(0)
+        end
+
+        writer.close
+
+        deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
+        loop do
+          _, status = Process.waitpid2(pid, Process::WNOHANG)
+          if status
+            break
+          elsif Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
+            Process.kill("KILL", pid)
+            Process.waitpid(pid)
+            reader.close
+            return { error: "Execution timed out after #{timeout}s" }
+          end
+          sleep 0.05
+        end
+
+        data = reader.read
+        reader.close
+
+        data.empty? ? { output: "", result: nil, is_final_answer: false } : Marshal.load(data) # rubocop:disable Security/MarshalLoad
+      end
+    end
+
+    # JRuby: fork is unavailable; use a thread with a join-based timeout.
+    # STDOUT_MUTEX serializes $stdout redirection so concurrent sandbox calls
+    # (e.g. managed agents) don't interleave captured output.
+    class ThreadExecutor < Executor
+      STDOUT_MUTEX = Mutex.new
+
+      def call(timeout, &block)
+        result = nil
+        error  = nil
+
+        thread = Thread.new do
+          STDOUT_MUTEX.synchronize { result = block.call }
+        rescue => e
+          error = "#{e.class}: #{e.message}"
+        end
+
+        unless thread.join(timeout)
+          thread.kill
+          return { error: "Execution timed out after #{timeout}s" }
+        end
+
+        error ? { error: error } : result
+      end
+    end
+
+    EXECUTOR = Executor.for_platform.new
+
     attr_reader :timeout
 
     def initialize(tools:, timeout: DEFAULT_TIMEOUT)
@@ -15,44 +94,7 @@ module Rubyagents
     end
 
     def execute(code)
-      reader, writer = IO.pipe
-
-      pid = Process.fork do
-        reader.close
-        result = run_in_child(code)
-        Marshal.dump(result, writer)
-      rescue => e
-        Marshal.dump({ error: "#{e.class}: #{e.message}" }, writer)
-      ensure
-        writer.close
-        exit!(0)
-      end
-
-      writer.close
-
-      # Wait with timeout
-      deadline = Process.clock_gettime(Process::CLOCK_MONOTONIC) + timeout
-      loop do
-        _, status = Process.waitpid2(pid, Process::WNOHANG)
-        if status
-          break
-        elsif Process.clock_gettime(Process::CLOCK_MONOTONIC) > deadline
-          Process.kill("KILL", pid)
-          Process.waitpid(pid)
-          reader.close
-          return { error: "Execution timed out after #{timeout}s" }
-        end
-        sleep 0.05
-      end
-
-      data = reader.read
-      reader.close
-
-      if data.empty?
-        { output: "", result: nil, is_final_answer: false }
-      else
-        Marshal.load(data) # rubocop:disable Security/MarshalLoad
-      end
+      EXECUTOR.call(@timeout) { run_in_child(code) }
     end
 
     private

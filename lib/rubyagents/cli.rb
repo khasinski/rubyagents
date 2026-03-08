@@ -130,7 +130,8 @@ module Rubyagents
       first = true
 
       loop do
-        print Lipgloss::Style.new.bold(true).foreground("#7B61FF").render(">> ")
+        prompt = RUBY_ENGINE == "jruby" ? ">> " : Lipgloss::Style.new.bold(true).foreground("#7B61FF").render(">> ")
+        print prompt
         query = $stdin.gets&.strip
         break if query.nil? || query.empty?
 
