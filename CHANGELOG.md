@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0
+
+JRuby 10 support, interactive UI, and CI.
+
+- **JRuby 10 support** -- Thread-based executor for JRuby where fork is unavailable; lipgloss gracefully skipped via `rescue LoadError`
+- **Interactive status lines** -- Spinner shows "Executing..." / "Running tool_name..." during execution, resolves in-place to green dot (success) or red dot (error)
+- **GitHub Actions CI** -- Build matrix with Ruby 3.2, 3.3, 3.4, and JRuby 10.0
+
 ## 0.2.0
 
 Tools, MCP filtering, observability, and code agent improvements.
