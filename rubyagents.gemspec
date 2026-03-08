@@ -30,7 +30,7 @@ Gem::Specification.new do |spec|
   spec.executables = ["rubyagents"]
   spec.require_paths = ["lib"]
 
-  spec.add_dependency "lipgloss", "~> 0.2"
+  spec.add_dependency "lipgloss", "~> 0.2" unless RUBY_ENGINE == "jruby"
   spec.add_dependency "reverse_markdown", "~> 3.0"
   spec.add_dependency "rouge", "~> 4.0"
   spec.add_dependency "json-schema", "~> 4.0"

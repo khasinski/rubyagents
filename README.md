@@ -16,7 +16,7 @@ Or add to your Gemfile:
 gem "rubyagents"
 ```
 
-Requires Ruby 3.2+.
+Requires Ruby 3.2+. JRuby 9.4+ is also supported — the sandbox automatically switches from fork-based to thread-based execution, and platform-specific gems (lipgloss) are skipped gracefully.
 
 ## Quick start
 
@@ -48,7 +48,7 @@ Set API keys via environment variables: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`.
 
 ## Agent types
 
-**CodeAgent** -- the LLM writes Ruby code that gets executed in a forked sandbox. Tools are available as methods. Variables persist between steps.
+**CodeAgent** -- the LLM writes Ruby code that gets executed in a sandboxed environment. Tools are available as methods. Variables persist between steps. On MRI, code runs in a forked child process for full isolation; on JRuby, a thread-based executor is used automatically since fork is unavailable — no configuration needed.
 
 ```ruby
 agent = Rubyagents::CodeAgent.new(model: "anthropic/claude-sonnet-4-20250514")
@@ -244,6 +244,11 @@ rubyagents -i
 | `output_type:` | `nil` | Hash (JSON Schema) or Proc for output validation |
 | `final_answer_checks:` | `[]` | Array of procs `(answer, memory) -> bool` |
 | `step_callbacks:` | `[]` | Array of procs `(step, agent:) -> void` |
+
+## Credits
+
+- [@khasinski](https://github.com/khasinski) — creator and maintainer of rubyagents
+- [@parolkar](https://github.com/parolkar) — JRuby compatibility support
 
 ## License
 
