@@ -1,8 +1,13 @@
 # Rubyagents
 
+[![Gem Version](https://badge.fury.io/rb/rubyagents.svg)](https://rubygems.org/gems/rubyagents)
+[![CI](https://github.com/khasinski/rubyagents/actions/workflows/ci.yml/badge.svg)](https://github.com/khasinski/rubyagents/actions/workflows/ci.yml)
+
 A radically simple, code-first AI agent framework for Ruby. Inspired by [smolagents](https://github.com/huggingface/smolagents).
 
 LLMs write and execute Ruby code -- not JSON blobs. This means tool calls are just method calls, variables persist between steps, and the full power of Ruby is available to the agent at every turn.
+
+![rubyagents demo](demo.gif)
 
 ## Installation
 
