@@ -57,7 +57,7 @@ RSpec.describe Rubyagents::Sandbox do
   end
 
   describe "isolation" do
-    it "does not affect parent process state" do
+    it "does not affect parent process state", skip: (RUBY_ENGINE == "jruby" ? "JRuby uses thread-based executor without process isolation" : false) do
       original_stdout = $stdout
       sandbox.execute("$stdout = StringIO.new")
       expect($stdout).to eq(original_stdout)
