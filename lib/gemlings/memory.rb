@@ -102,7 +102,18 @@ module Gemlings
           messages << assistant_msg if assistant_msg
 
           if step.observation
-            messages << { role: "user", content: "Observation: #{step.observation}" }
+            if step.tool_calls&.any?
+              # Some LLM APIs (e.g. Anthropic) require that every tool_use block in an
+              # assistant message is immediately followed by a tool_result block in the
+              # next user message — a plain text "Observation:" message is rejected.
+              # Build a structured tool_result entry for each tool call in this step.
+              tool_results = step.tool_calls.map do |tc|
+                { type: "tool_result", tool_use_id: tc.id, content: step.observation }
+              end
+              messages << { role: "user", content: tool_results }
+            else
+              messages << { role: "user", content: "Observation: #{step.observation}" }
+            end
           elsif step.error
             messages << {
               role: "user",
@@ -113,7 +124,12 @@ module Gemlings
         end
       end
 
-      messages.each { |m| m[:content] = sanitize_utf8(m[:content]) if m[:content] }
+      # Some LLM APIs (e.g. Anthropic) reject messages whose string content ends with
+      # trailing whitespace. Strip it from every message to avoid API errors.
+      messages.each do |m|
+        m[:content] = sanitize_utf8(m[:content]) if m[:content].is_a?(String)
+        m[:content] = m[:content].rstrip if m[:content].is_a?(String)
+      end
     end
 
     def last_step
