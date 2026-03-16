@@ -58,7 +58,7 @@ module Gemlings
 
       def load_messages(chat, messages)
         messages.each do |msg|
-          role = msg[:role]
+          role    = msg[:role]
           content = msg[:content]
 
           case role
@@ -71,9 +71,28 @@ module Gemlings
             end
             chat.add_message(attrs)
           else
-            chat.add_message(role: role.to_sym, content: content || "")
+            # A user message whose content is an array of tool_result hashes is the
+            # structured response to one or more tool_use calls in the preceding
+            # assistant message. ruby_llm expects these to be added as separate
+            # messages with role: :tool and a tool_call_id, not as plain user text.
+            if tool_result_content?(content)
+              content.each do |tr|
+                chat.add_message(
+                  role: :tool,
+                  content: (tr[:content] || tr["content"]).to_s,
+                  tool_call_id: tr[:tool_use_id] || tr["tool_use_id"]
+                )
+              end
+            else
+              chat.add_message(role: role.to_sym, content: content || "")
+            end
           end
         end
+      end
+
+      def tool_result_content?(content)
+        content.is_a?(Array) &&
+          content.all? { |c| c.is_a?(Hash) && (c[:type] == "tool_result" || c["type"] == "tool_result") }
       end
 
       def load_tools(chat, tool_schemas)
