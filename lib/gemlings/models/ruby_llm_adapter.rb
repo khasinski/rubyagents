@@ -44,7 +44,8 @@ module Gemlings
           config.gemini_api_key = ENV["GEMINI_API_KEY"] if ENV["GEMINI_API_KEY"]
           config.deepseek_api_key = ENV["DEEPSEEK_API_KEY"] if ENV["DEEPSEEK_API_KEY"]
           config.openrouter_api_key = ENV["OPENROUTER_API_KEY"] if ENV["OPENROUTER_API_KEY"]
-          config.ollama_api_base = ENV["OLLAMA_HOST"] if ENV["OLLAMA_HOST"]
+          ollama_base = ENV["OLLAMA_HOST"] || "http://localhost:11434"
+          config.ollama_api_base = "#{ollama_base.chomp("/")}/v1"
         end
 
         @configured = true

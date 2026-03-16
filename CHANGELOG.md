@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.2
+
+Bug fixes and Ollama improvements.
+
+- **Fix Anthropic tool_result format** -- ToolCallingAgent now emits structured `tool_result` blocks instead of plain text observations, fixing 400 errors on multi-step runs with Anthropic models (thanks @parolkar)
+- **Fix trailing whitespace in messages** -- Strip trailing whitespace from message content to avoid Anthropic API rejections
+- **Fix Ollama connectivity** -- Default `ollama_api_base` to `http://localhost:11434/v1` so Ollama works out of the box without setting `OLLAMA_HOST`
+- **Fix MCP transport leak** -- Close MCP transport on error paths (no tools found, tool name not found)
+- **Fix `planning_interval: 0`** -- Guard against `ZeroDivisionError` when planning interval is zero
+
 ## 0.3.0
 
 JRuby 10 support, interactive UI, and CI.
