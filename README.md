@@ -235,6 +235,10 @@ gemlings -S "What is 2+2?"  # stream tokens to terminal
 
 Requires Ruby 3.2+. JRuby 10+ is also supported.
 
+## Ecosystem
+
+- [gemlings_browser](https://github.com/parolkar/gemlings_browser) -- Browser automation tools for gemlings agents
+
 ## License
 
 MIT
