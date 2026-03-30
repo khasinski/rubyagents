@@ -35,7 +35,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency "rouge", "~> 4.0"
   spec.add_dependency "json-schema", "~> 4.0"
   spec.add_dependency "bigdecimal"
-  spec.add_dependency "mcp", "~> 0.7"
+  spec.add_dependency "mcp", ">= 0.9.2"
   spec.add_dependency "ruby_llm", "~> 1.1"
 
   spec.add_development_dependency "rake", "~> 13.0"
