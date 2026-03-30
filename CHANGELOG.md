@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+Streaming output, configurable sandboxing, and RubyLLM interop.
+
+- **Streaming output** -- `agent.run("task", stream: true)` prints LLM tokens to the terminal in real-time; CLI flag: `gemlings -S`
+- **Configurable sandbox executors** -- Choose `:fork`, `:thread`, or `:box` via `CodeAgent.new(executor: :box)`; auto-detects the best option per platform
+- **Ruby::Box executor** -- On Ruby 4.0+ with `RUBY_BOX=1`, the `:box` executor adds namespace isolation so agent code can't leak monkey-patches or constants into the host
+- **RubyLLM tool interop** -- `Gemlings.tool_from_ruby_llm(MyTool)` wraps any `RubyLLM::Tool` for use in gemlings agents
+- **RubyLLM agent interop** -- `Gemlings.agent_from_ruby_llm(MyAgent)` wraps a `RubyLLM::Agent` or `Chat` as a managed sub-agent
+- **Test coverage** -- Added specs for agent base class, CLI, prompt templates, and UI (106 -> 172 tests)
+
 ## 0.3.2
 
 Bug fixes and Ollama improvements.

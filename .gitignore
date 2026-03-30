@@ -6,3 +6,4 @@
 Gemfile.lock
 mise.toml
 .smolagents/
+.idea/

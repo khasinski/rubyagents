@@ -90,6 +90,23 @@ tools = Gemlings.tools_from_mcp(command: ["npx", "-y", "@modelcontextprotocol/se
 tool = Gemlings.tool_from_mcp(command: ["npx", "-y", "@modelcontextprotocol/server-filesystem", "/tmp"], tool_name: "read_file")
 ```
 
+### RubyLLM tools
+
+Use existing [RubyLLM](https://rubyllm.com) tools directly:
+
+```ruby
+class SearchTool < RubyLLM::Tool
+  description "Search the web"
+  param :query, type: :string, desc: "Search query"
+  def execute(query:) = "results for #{query}"
+end
+
+agent = Gemlings::CodeAgent.new(
+  model: "anthropic/claude-sonnet-4-20250514",
+  tools: [Gemlings.tool_from_ruby_llm(SearchTool)]
+)
+```
+
 ## Multi-agent workflows
 
 Nest agents as tools. The manager agent calls sub-agents by name:
@@ -108,6 +125,21 @@ manager = Gemlings::CodeAgent.new(
 )
 
 manager.run("Find out when Ruby 3.4 was released and summarize the key features")
+```
+
+RubyLLM agents work too:
+
+```ruby
+class Researcher < RubyLLM::Agent
+  model "openai/gpt-4o"
+  tools SearchTool
+  instructions "You are a research assistant."
+end
+
+manager = Gemlings::CodeAgent.new(
+  model: "anthropic/claude-sonnet-4-20250514",
+  agents: [Gemlings.agent_from_ruby_llm(Researcher, name: "researcher", description: "Researches topics")]
+)
 ```
 
 ## Output validation
