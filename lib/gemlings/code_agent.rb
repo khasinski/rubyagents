@@ -5,9 +5,9 @@ module Gemlings
     CODE_BLOCK_RE = /```ruby\s*\n(.*?)```/m
 
     def initialize(model:, tools: [], agents: [], name: nil, description: nil,
-                   max_steps: 10, timeout: 30, planning_interval: nil, step_callbacks: [],
-                   callbacks: [], final_answer_checks: [], prompt_templates: nil,
-                   instructions: nil, output_type: nil)
+                   max_steps: 10, timeout: 30, executor: nil, planning_interval: nil,
+                   step_callbacks: [], callbacks: [], final_answer_checks: [],
+                   prompt_templates: nil, instructions: nil, output_type: nil)
       require_relative "tools/list_gems"
       tools = [ListGems] + tools unless tools.any? { |t| t == ListGems || (t.is_a?(Tool) && t.is_a?(ListGems)) }
       super(model: model, tools: tools, agents: agents, name: name, description: description,
@@ -15,6 +15,7 @@ module Gemlings
             callbacks: callbacks, final_answer_checks: final_answer_checks,
             prompt_templates: prompt_templates, instructions: instructions, output_type: output_type)
       @timeout = timeout
+      @executor = executor ? Sandbox.resolve_executor(executor) : nil
     end
 
     private
@@ -76,7 +77,7 @@ module Gemlings
     end
 
     def execute(code)
-      sandbox = Sandbox.new(tools: tools, timeout: @timeout)
+      sandbox = Sandbox.new(tools: tools, timeout: @timeout, executor: @executor)
       sandbox.execute(code)
     end
   end

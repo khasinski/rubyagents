@@ -232,8 +232,9 @@ gemlings -S "What is 2+2?"  # stream tokens to terminal
 | `final_answer_checks:` | `[]` | Procs `(answer, memory) -> bool` |
 | `callbacks:` | `[]` | Array of `Callback` instances |
 | `step_callbacks:` | `[]` | Procs `(step, agent:) -> void` |
+| `executor:` | auto | CodeAgent sandbox: `:fork`, `:thread`, or `:box` (Ruby 4.0+) |
 
-Requires Ruby 3.2+. JRuby 10+ is also supported.
+Requires Ruby 3.2+. JRuby 10+ is also supported. On Ruby 4.0+ with `RUBY_BOX=1`, the `:box` executor adds namespace isolation via `Ruby::Box`.
 
 ## Ecosystem
 

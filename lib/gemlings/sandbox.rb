@@ -7,12 +7,17 @@ module Gemlings
     DEFAULT_TIMEOUT = 30 # seconds
 
     # ---------------------------------------------------------------------------
-    # Executor strategy — selected once at load time based on the Ruby engine.
-    # Adding a new backend (e.g. TruffleRuby) is a new subclass + one constant.
+    # Executor strategy — user-selectable, with sensible per-platform defaults.
     # ---------------------------------------------------------------------------
+    EXECUTORS = {}
+
     class Executor
-      def self.for_platform
-        RUBY_ENGINE == "jruby" ? ThreadExecutor : ForkExecutor
+      def self.inherited(subclass)
+        super
+      end
+
+      def self.available?
+        true
       end
 
       def call(_timeout, &_block)
@@ -22,6 +27,10 @@ module Gemlings
 
     # MRI / TruffleRuby: fork gives full process isolation and safe kill.
     class ForkExecutor < Executor
+      def self.available?
+        Process.respond_to?(:fork)
+      end
+
       def call(timeout, &block)
         reader, writer = IO.pipe
 
@@ -57,6 +66,24 @@ module Gemlings
         data.empty? ? { output: "", result: nil, is_final_answer: false } : Marshal.load(data) # rubocop:disable Security/MarshalLoad
       end
     end
+    EXECUTORS[:fork] = ForkExecutor
+
+    # Ruby 4.0+: Fork with Ruby::Box namespace isolation.
+    # Agent code runs in a separate process AND a separate namespace, so
+    # monkey-patches, constants, and class variables can't leak into the host.
+    class BoxExecutor < ForkExecutor
+      def self.available?
+        super && defined?(Ruby::Box) && Ruby::Box.enabled?
+      end
+
+      def call(timeout, &block)
+        super(timeout) do
+          box = Ruby::Box.new
+          block.call(box)
+        end
+      end
+    end
+    EXECUTORS[:box] = BoxExecutor
 
     # JRuby: fork is unavailable; use a thread with a join-based timeout.
     # STDOUT_MUTEX serializes $stdout redirection so concurrent sandbox calls
@@ -82,19 +109,38 @@ module Gemlings
         error ? { error: error } : result
       end
     end
+    EXECUTORS[:thread] = ThreadExecutor
 
-    EXECUTOR = Executor.for_platform.new
+    def self.default_executor
+      if BoxExecutor.available?
+        :box
+      elsif ForkExecutor.available?
+        :fork
+      else
+        :thread
+      end
+    end
+
+    def self.resolve_executor(name)
+      klass = EXECUTORS[name]
+      raise ArgumentError, "Unknown executor: #{name.inspect}. Available: #{EXECUTORS.keys.join(", ")}" unless klass
+      unless klass.available?
+        raise Error, "Executor #{name.inspect} is not available on this platform (#{RUBY_ENGINE} #{RUBY_VERSION})"
+      end
+      klass.new
+    end
 
     attr_reader :timeout
 
-    def initialize(tools:, timeout: DEFAULT_TIMEOUT)
+    def initialize(tools:, timeout: DEFAULT_TIMEOUT, executor: nil)
       @tools = tools
       @timeout = timeout
+      @executor = executor || self.class.resolve_executor(self.class.default_executor)
       @tool_map = tools.each_with_object({}) { |t, h| h[t.class.tool_name] = t }
     end
 
     def execute(code)
-      EXECUTOR.call(@timeout) { run_in_child(code) }
+      @executor.call(@timeout) { run_in_child(code) }
     end
 
     private

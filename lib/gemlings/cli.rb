@@ -26,7 +26,8 @@ module Gemlings
         stream: false,
         max_steps: 10,
         planning_interval: nil,
-        agent_type: "code"
+        agent_type: "code",
+        executor: nil
       }
       parse_options!
     end
@@ -80,6 +81,10 @@ module Gemlings
           @options[:max_steps] = n
         end
 
+        opts.on("-e", "--executor NAME", "Sandbox executor: fork, thread, box (default: auto)") do |e|
+          @options[:executor] = e.to_sym
+        end
+
         opts.on("-v", "--version", "Show version") do
           puts "gemlings #{VERSION}"
           exit
@@ -113,12 +118,14 @@ module Gemlings
 
       agent_class = @options[:agent_type] == "tool_calling" ? ToolCallingAgent : CodeAgent
 
-      agent_class.new(
+      opts = {
         model: @options[:model],
         tools: tools,
         max_steps: @options[:max_steps],
         planning_interval: @options[:planning_interval]
-      )
+      }
+      opts[:executor] = @options[:executor] if @options[:executor] && agent_class == CodeAgent
+      agent_class.new(**opts)
     end
 
     def single_query(query)
